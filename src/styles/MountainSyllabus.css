@@ -1,0 +1,269 @@
+/* FILE: src/styles/MountainSyllabus.css */
+
+.mountain-syllabus-stage {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 54px);
+  background: #000000;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.reimagined-app.immersive-active .mountain-syllabus-stage {
+  height: 100vh;
+}
+
+/* Mountain Canvas Layer - shrunk and anchored to the bottom so peaks never touch the top edge.
+   Tune the size with --mtn-scale (set from MOUNTAIN_SCALE in MountainSyllabusView.jsx). */
+.mountain-canvas-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+  transform: scale(var(--mtn-scale, 0.76));
+  transition: filter 0.45s ease;
+  pointer-events: none;
+  z-index: 1;
+  background: transparent;
+}
+
+.mountain-syllabus-stage.stage-dots .mountain-canvas-layer {
+  filter: brightness(1.0);
+}
+
+.mountain-syllabus-stage.stage-pill .mountain-canvas-layer {
+  filter: brightness(0.85);
+}
+
+.mountain-syllabus-stage.stage-page .mountain-canvas-layer {
+  filter: brightness(0.45);
+}
+
+/* The iframe is made wider by 1/scale so that after shrinking it still spans the full screen width.
+   It stays invisible until the mountain is rendered AND recolored, then fades in. */
+.shan-shui-iframe {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: calc(100% / var(--mtn-scale, 0.76));
+  height: 100%;
+  transform: translateX(-50%);
+  border: none;
+  background: transparent;
+  color-scheme: normal;
+  pointer-events: none;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.shan-shui-iframe.is-ready {
+  opacity: 1;
+}
+
+/* Soft fade at the top so the mountain never ends in a hard line */
+.mountain-top-fade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* \~status bar + a bit of the top pills only */
+  height: calc(env(safe-area-inset-top, 12px) + 56px);
+  background: linear-gradient(
+    to bottom,
+    #000000 0%,
+    #000000 35%,
+    rgba(0, 0, 0, 0.55) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mountain-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Floating Nodes Layer */
+.mountain-nodes-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* Each topic sits on the road in a zero-size wrapper that JS moves every frame */
+.mountain-road-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.mountain-road-node > .mountain-node-marker {
+  pointer-events: inherit;
+}
+
+/* Dot <-> pill is ONE element that morphs: fixed heights/widths (animatable), content always
+   mounted and only revealed by the growing box, so nothing pops in or out. */
+.mountain-node-marker {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: 46px;
+  height: 46px;
+  padding: 2px;
+  border-radius: 23px;
+  background: rgba(12, 15, 22, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.95),
+              0 0 16px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              border-radius 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.45s ease,
+              border-color 0.45s ease,
+              box-shadow 0.55s ease;
+}
+
+/* STAGE 1: Dot icon (same size for every node; the road handles fade/scale) */
+.mountain-node-marker.mode-dot {
+  width: 46px;
+  height: 46px;
+}
+
+/* STAGE 2: Expanded Pill */
+.mountain-node-marker.mode-pill {
+  width: 290px;
+  max-width: 82vw;
+  height: 70px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 35px;
+  background: rgba(14, 18, 28, 0.94);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.98),
+              0 0 25px rgba(56, 189, 248, 0.22);
+}
+
+.mn-avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+
+/* Text keeps a fixed width (no re-wrapping while the pill grows); the box just reveals it.
+   Collapsing: text fades out first. Expanding: text fades in a beat after the box starts growing. */
+.mn-pill-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+  width: min(200px, calc(82vw - 96px));
+  margin-left: 12px;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.18s ease,
+              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mountain-node-marker.mode-pill .mn-pill-content {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.35s ease 0.16s,
+              transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+}
+
+.mn-pill-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mn-pill-desc {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* STAGE 3: Translucent Notebook View over Black Mountain Background */
+.mountain-notebook-glass-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: opacity 0.35s ease, background-color 0.35s ease;
+  touch-action: pan-y;
+}
+
+.mountain-notebook-glass-sheet.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.mountain-notebook-glass-sheet.is-open.is-immersive-black {
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.mountain-page-inner {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-bottom: 96px;
+}
+
+.mountain-page-inner .note-box {
+  background: rgba(15, 20, 28, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* FIXED PAGE INDICATOR (Pinned securely to screen bottom center) */
+.fixed-page-nav {
+  position: fixed !important;
+  bottom: 18px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99 !important;
+  background: rgba(12, 15, 22, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

@@ -30,7 +30,7 @@ export default function NotebookPage({
   const longPressTimer = useRef(null);
 
   const minSwipeDistance = 50;
-  const doubleSwipeWindow = 320; // ms window to distinguish single swipe vs double swipe
+  const doubleSwipeWindow = 320;
 
   useEffect(() => {
     setCurrentPage(0);
@@ -229,7 +229,6 @@ export default function NotebookPage({
     const direction = distance > 0 ? 'left' : 'right';
     const now = Date.now();
 
-    // Check if this is a double-swipe in the same direction
     if (
       now - lastSwipeTime.current <= doubleSwipeWindow &&
       lastSwipeDir.current === direction
@@ -247,7 +246,6 @@ export default function NotebookPage({
         onPrevTopic();
       }
     } else {
-      // First swipe: wait briefly to see if a second swipe arrives; otherwise move 1 page
       lastSwipeTime.current = now;
       lastSwipeDir.current = direction;
 
@@ -288,7 +286,7 @@ export default function NotebookPage({
       </div>
 
       {renderedData && renderedData.totalPages > 0 && (
-        <div className="floating-nav">
+        <div className="floating-nav fixed-page-nav">
           {isFirstPage && hasPrevTopic && onPrevTopic && (
             <button
               className="uni-btn subtle next-topic-btn"

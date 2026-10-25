@@ -19,6 +19,8 @@ import NotebookPage from './NotebookPage';
 import Task from './Task';
 import Competition from './Competition';
 import CustomSelect from './CustomSelect';
+import MountainSyllabusView from './components/mountain/MountainSyllabusView';
+import SyllabusViewToggle from './components/mountain/SyllabusViewToggle';
 
 import {
   semesterCatalog,
@@ -74,6 +76,15 @@ export default function App() {
   const [currentFont, setCurrentFont] = useState(fonts[10].value);
   const [scores, setScores] = useState({ user: 35, opponent: 20 });
 
+  // Mountain Mode & 3-Stage State ('dots' -> 'pill' -> 'page')
+  const [mountainSyllabusMode, setMountainSyllabusMode] = useState(false);
+  const [mountainStage, setMountainStage] = useState('dots');
+
+  const isSyllabusScreen =
+    screen === 'semester_stack' ||
+    screen === 'subject_stack' ||
+    screen === 'topic_full';
+
   const [herHomeNote, setHerHomeNote] = useState(() => peekHomeBlossomStory());
   const [immersiveNotes, setImmersiveNotes] = useState(false);
   const [readerFontSize, setReaderFontSize] = useState(1.0);
@@ -103,10 +114,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (screen !== 'topic_full') {
+    if (screen !== 'topic_full' && !(mountainSyllabusMode && mountainStage === 'page')) {
       setImmersiveNotes(false);
     }
-  }, [screen]);
+  }, [screen, mountainSyllabusMode, mountainStage]);
 
   const handleLongPressHome = () => {
     const nextStory = advanceHomeBlossomStory();
@@ -221,7 +232,10 @@ export default function App() {
 
   const handleRootDirectOpen = (card) => {
     if (card.id === 'card_my_notes') setScreen('my_notes_full');
-    if (card.id === 'card_suru_notes') setScreen('semester_stack');
+    if (card.id === 'card_suru_notes') {
+      setMountainStage('dots');
+      setScreen('semester_stack');
+    }
     if (card.id === 'card_gym') setScreen('gym_full');
     if (card.id === 'card_tasks') setScreen('tasks_full');
   };
@@ -312,6 +326,22 @@ export default function App() {
             <button
               className="uni-btn subtle"
               onClick={() => {
+                // Step back through Mountain stages: page -> pill -> dots -> root_stack
+                if (mountainSyllabusMode && isSyllabusScreen) {
+                  if (mountainStage === 'page') {
+                    setImmersiveNotes(false);
+                    setMountainStage('pill');
+                    return;
+                  }
+                  if (mountainStage === 'pill') {
+                    setMountainStage('dots');
+                    return;
+                  }
+                  setMountainSyllabusMode(false);
+                  setScreen('root_stack');
+                  return;
+                }
+
                 if (screen === 'topic_full') setScreen('subject_stack');
                 else if (screen === 'subject_stack') setScreen('semester_stack');
                 else setScreen('root_stack');
@@ -325,12 +355,27 @@ export default function App() {
           )}
         </div>
 
-        <CustomSelect
-          className="uni-btn subtle"
-          value={currentFont}
-          onChange={setCurrentFont}
-          options={fonts.map((f) => ({ value: f.value, label: f.name }))}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isSyllabusScreen && (
+            <SyllabusViewToggle
+              isMountainMode={mountainSyllabusMode}
+              onToggle={() => {
+                setMountainSyllabusMode((prev) => {
+                  const next = !prev;
+                  if (next) setMountainStage('dots');
+                  return next;
+                });
+              }}
+            />
+          )}
+
+          <CustomSelect
+            className="uni-btn subtle"
+            value={currentFont}
+            onChange={setCurrentFont}
+            options={fonts.map((f) => ({ value: f.value, label: f.name }))}
+          />
+        </div>
       </div>
 
       {screen === 'root_stack' && (
@@ -349,63 +394,86 @@ export default function App() {
         </div>
       )}
 
-      {screen === 'semester_stack' && (
-        <SquareStack
-          deckTitle="SELECT SEMESTER"
-          cards={semesterCards}
-          onSelectItem={handleSemesterDirectOpen}
-          onDirectOpenCard={handleSemesterDirectOpen}
+      {isSyllabusScreen && mountainSyllabusMode ? (
+        <MountainSyllabusView
+          stage={mountainStage}
+          setStage={setMountainStage}
+          topics={topicPool}
+          activeTopic={activeTopic || topicPool[0]}
+          onSelectTopic={(t) => setActiveTopic(t)}
+          currentMode={currentMode}
+          onToggleMode={() => {
+            const nextIdx = (modesOrder.indexOf(currentMode) + 1) % modesOrder.length;
+            setCurrentMode(modesOrder[nextIdx]);
+          }}
+          allModeData={allModeData}
+          simpleData={simpleData}
+          immersiveNotes={immersiveNotes}
+          setImmersiveNotes={setImmersiveNotes}
+          readerFontSize={readerFontSize}
+          setReaderFontSize={setReaderFontSize}
         />
-      )}
+      ) : (
+        <>
+          {screen === 'semester_stack' && (
+            <SquareStack
+              deckTitle="SELECT SEMESTER"
+              cards={semesterCards}
+              onSelectItem={handleSemesterDirectOpen}
+              onDirectOpenCard={handleSemesterDirectOpen}
+            />
+          )}
 
-      {screen === 'subject_stack' && (
-        <SquareStack
-          deckTitle={activeSemObj.title}
-          cards={subjectCards}
-          onSelectItem={handleSubjectTopicSelect}
-        />
-      )}
+          {screen === 'subject_stack' && (
+            <SquareStack
+              deckTitle={activeSemObj.title}
+              cards={subjectCards}
+              onSelectItem={handleSubjectTopicSelect}
+            />
+          )}
 
-      {screen === 'topic_full' && activeTopic && (
-        <div
-          className="full-page-container"
-          onDoubleClick={() => setImmersiveNotes((prev) => !prev)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{ fontSize: `${readerFontSize}rem` }}
-        >
-          <div className="full-page-header-row">
-            <div>
-              <h1 className="full-page-title">{activeTopic.title}</h1>
-              {!immersiveNotes && (
-                <p className="full-page-sub">{activeTopic.subtitle}</p>
-              )}
+          {screen === 'topic_full' && activeTopic && (
+            <div
+              className="full-page-container"
+              onDoubleClick={() => setImmersiveNotes((prev) => !prev)}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{ fontSize: `${readerFontSize}rem` }}
+            >
+              <div className="full-page-header-row">
+                <div>
+                  <h1 className="full-page-title">{activeTopic.title}</h1>
+                  {!immersiveNotes && (
+                    <p className="full-page-sub">{activeTopic.subtitle}</p>
+                  )}
+                </div>
+
+                <div className="subtle-mode-wrap">
+                  <button
+                    className="uni-btn subtle"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const nextIdx = (modesOrder.indexOf(currentMode) + 1) % modesOrder.length;
+                      setCurrentMode(modesOrder[nextIdx]);
+                    }}
+                  >
+                    {currentMode}
+                  </button>
+                </div>
+              </div>
+
+              <NotebookPage
+                topicId={activeTopic.id}
+                topicData={activeModePayload}
+                hasNextTopic={hasNextTopic}
+                hasPrevTopic={hasPrevTopic}
+                onNextTopic={handleNextTopic}
+                onPrevTopic={handlePrevTopic}
+              />
             </div>
-
-            <div className="subtle-mode-wrap">
-              <button
-                className="uni-btn subtle"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const nextIdx = (modesOrder.indexOf(currentMode) + 1) % modesOrder.length;
-                  setCurrentMode(modesOrder[nextIdx]);
-                }}
-              >
-                {currentMode}
-              </button>
-            </div>
-          </div>
-
-          <NotebookPage
-            topicId={activeTopic.id}
-            topicData={activeModePayload}
-            hasNextTopic={hasNextTopic}
-            hasPrevTopic={hasPrevTopic}
-            onNextTopic={handleNextTopic}
-            onPrevTopic={handlePrevTopic}
-          />
-        </div>
+          )}
+        </>
       )}
 
       {screen === 'gym_full' && (
