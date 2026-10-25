@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Suru App</string>
-    <string name="title_activity_main">Suru App</string>
+    <string name="app_name">SURU</string>
+    <string name="title_activity_main">SURU</string>
     <string name="package_name">com.suru.app</string>
     <string name="custom_url_scheme">com.suru.app</string>
 </resources>

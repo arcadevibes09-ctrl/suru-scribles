@@ -1,6 +1,6 @@
 {
   "appId": "com.suru.app",
-  "appName": "Suru App",
+  "appName": "SURU",
   "webDir": "dist",
   "plugins": {
     "StatusBar": {
